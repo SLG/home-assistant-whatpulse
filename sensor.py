@@ -35,11 +35,11 @@ async def async_setup_platform(hass, config, async_add_devices, discovery_info=N
     username = config.get(CONF_USERNAME)
     api = WhatpulseAPI(username)
     async_add_devices([
-    WhatpulseSensor(api, "Keys", "mdi:keyboard"),
-    WhatpulseSensor(api, "Clicks", "mdi:mouse"),
-    WhatpulseSensor(api, "Download", "mdi:download"),
-    WhatpulseSensor(api, "Upload", "mdi:upload"),
-    WhatpulseSensor(api, "Uptime", "mdi:clock"),
+    WhatpulseSensor(api, "Keys", "Keys", "mdi:keyboard"),
+    WhatpulseSensor(api, "Clicks", "Clicks", "mdi:mouse"),
+    WhatpulseSensor(api, "DownloadMB", "Download", "mdi:download"),
+    WhatpulseSensor(api, "UploadMB", "Upload", "mdi:upload"),
+    WhatpulseSensor(api, "UptimeSeconds", "Uptime", "mdi:clock"),
     ], True)
 
 class WhatpulseAPI(object):
@@ -82,7 +82,7 @@ class WhatpulseAPI(object):
 
 
 class WhatpulseSensor(Entity):
-    def __init__(self, api, type, icon):
+    def __init__(self, api, type, rank, icon):
         self._attributes = {
             "Last Pulse": "",
             "Rank": 0,
@@ -90,6 +90,7 @@ class WhatpulseSensor(Entity):
         self._state = None
         self._api = api
         self._type = type
+        self._rank = rank
         self._icon = icon
 
     @property
@@ -117,6 +118,6 @@ class WhatpulseSensor(Entity):
         data = self._api._update_data()
 
         self._attributes["Last Pulse"] = data.find("LastPulse").text
-        self._attributes["Rank"] = data.find("Ranks").find(self._type).text
+        self._attributes["Rank"] = data.find("Ranks").find(self._rank).text
 
         self._state = data.find(self._type).text
