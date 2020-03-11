@@ -14,11 +14,11 @@ import homeassistant.helpers.config_validation as cv
 import requests
 from xml.etree import ElementTree
 
-from sensor_keys import WhatpulseKeysSensor
-from sensor_clicks import WhatpulseClicksSensor
-from sensor_download import WhatpulseDownloadSensor
-from sensor_upload import WhatpulseUploadSensor
-from sensor_uptime import WhatpulseUptimeSensor
+from sensors.keys import WhatpulseKeysSensor
+from sensors.clicks import WhatpulseClicksSensor
+from sensors.download import WhatpulseDownloadSensor
+from sensors.upload import WhatpulseUploadSensor
+from sensors.uptime import WhatpulseUptimeSensor
 
 DATA_URL = "http://api.whatpulse.org/user.php?user="
 
