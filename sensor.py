@@ -81,18 +81,20 @@ class WhatpulseAPI(object):
         return ElementTree.fromstring(response.content)
 
 
-class WhatpulseSensor(Entity, type, icon):
-    def __init__(self, api):
+class WhatpulseSensor(Entity):
+    def __init__(self, api, type, icon):
         self._attributes = {
             "Last Pulse": "",
             "Rank": 0,
         }
         self._state = None
         self._api = api
+        self._type = type
+        self._icon = icon
 
     @property
     def name(self):
-        return "Whatpulse " + type + " Sensor"
+        return "Whatpulse " + self._type + " Sensor"
 
     @property
     def state(self):
@@ -100,7 +102,7 @@ class WhatpulseSensor(Entity, type, icon):
 
     @property
     def unit_of_measurement(self):
-        return type
+        return self._type
 
     @property
     def device_state_attributes(self):
@@ -108,13 +110,13 @@ class WhatpulseSensor(Entity, type, icon):
 
     @property
     def icon(self):
-        return icon
+        return self._icon
 
     @Throttle(MIN_TIME_BETWEEN_UPDATES)
     def update(self):
         data = self._api._update_data()
 
         self._attributes["Last Pulse"] = data.find("LastPulse").text
-        self._attributes["Rank"] = data.find("Ranks").find(type).text
+        self._attributes["Rank"] = data.find("Ranks").find(self._type).text
 
-        self._state = data.find(type).text
+        self._state = data.find(self._type).text
