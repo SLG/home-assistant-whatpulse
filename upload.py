@@ -5,7 +5,7 @@ from datetime import timedelta
 
 MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=120)
 
-def class WhatpulseUploadSensor(Entity):
+def WhatpulseUploadSensor(Entity):
     def __init__(self, api):
         self._attributes = {
             "Last Pulse": "",
