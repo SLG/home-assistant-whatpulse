@@ -1,0 +1,5 @@
+{
+  "name": "Whatpulse Sensor",
+  "render_readme": true,
+  "domains": ["sensor"]
+}
