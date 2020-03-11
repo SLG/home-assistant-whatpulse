@@ -1,11 +1,11 @@
 """Sensor for Keys from Whatpulse"""
 from homeassistant.helpers.entity import Entity
-from homeassistant.util import Throttle
+from homeassistant.util import Throttledz
 from datetime import timedelta
 
 MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=120)
 
-class WhatpulseDownloadSensor(Entity):
+def class WhatpulseDownloadSensor(Entity):
     def __init__(self, api):
         self._attributes = {
             "Last Pulse": "",
