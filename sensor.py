@@ -1,42 +1,30 @@
 """Sensor for Whatpulse"""
 
-from datetime import date
 from datetime import time
 from datetime import datetime
-from datetime import timedelta
 import logging
 
 import voluptuous as vol
 
 from homeassistant.components.sensor import PLATFORM_SCHEMA
-from homeassistant.const import (
-    ATTR_ATTRIBUTION,
-    CONF_NAME,
-    CONF_USERNAME
-)
+from homeassistant.const import CONF_USERNAME
+
 import homeassistant.helpers.config_validation as cv
-from homeassistant.helpers.entity import Entity
-from homeassistant.util import Throttle
 
 import requests
 from xml.etree import ElementTree
+
+import WhatpulseKeysSensor
+import WhatpulseClicksSensor
+import WhatpulseDownloadSensor
+import WhatpulseUploadSensor
+import WhatpulseUptimeSensor
 
 DATA_URL = "http://api.whatpulse.org/user.php?user="
 
 _LOGGER = logging.getLogger(__name__)
 
 ATTRIBUTION = "Information provided by Whatpulse"
-
-DEFAULT_NAME = "Whatpulse stats"
-ICON = "mdi:podium-gold"
-
-SENSOR_KEYS_NAME = "Whatpulse Keys Sensor"
-SENSOR_KEYS_ICON = "mdi:podium-gold"
-
-SENSOR_CLICKS_NAME = "Whatpulse Clicks Sensor"
-SENSOR_CLICKS_ICON = "mdi:podium-gold"
-
-MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=10)
 
 REFRESH_RATE = 120
 
@@ -49,7 +37,13 @@ async def async_setup_platform(hass, config, async_add_devices, discovery_info=N
 
     username = config.get(CONF_USERNAME)
     api = WhatpulseAPI(username)
-    async_add_devices([WhatpulseKeysSensor(api), WhatpulseClicksSensor(api), WhatpulseSensor(api)], True)
+    async_add_devices([
+    WhatpulseKeysSensor(api),
+    WhatpulseClicksSensor(api),
+    WhatpulseDownloadSensor(api),
+    WhatpulseUploadSensor(api),
+    WhatpulseUptimeSensor(api),
+    ], True)
 
 class WhatpulseAPI(object):
     """ Interface class for the Whatpulse API """
@@ -88,155 +82,3 @@ class WhatpulseAPI(object):
             return False
 
         return ElementTree.fromstring(response.content)
-
-class WhatpulseKeysSensor(Entity):
-
-    def __init__(self, api):
-        self._attributes = {
-            ATTR_ATTRIBUTION: ATTRIBUTION,
-            "last_pulse": "",
-            "rank_keys": 0,
-        }
-        self._state = None
-        self._api = api
-
-    @property
-    def name(self):
-        return SENSOR_KEYS_NAME
-
-    @property
-    def state(self):
-        return self._state
-
-    @property
-    def unit_of_measurement(self):
-        return "Keys"
-
-    @property
-    def device_state_attributes(self):
-        return self._attributes
-
-    @property
-    def icon(self):
-        return ICON
-
-    @Throttle(MIN_TIME_BETWEEN_UPDATES)
-    def update(self):
-        """Update device state."""
-        data = self._api._update_data()
-
-        self._attributes["last_pulse"] = data.find("LastPulse").text
-
-        ranks = data.find("Ranks")
-        self._attributes["rank_keys"] = ranks.find("Keys").text
-
-        self._state = data.find("Keys").text
-
-class WhatpulseClicksSensor(Entity):
-    def __init__(self, api):
-        self._attributes = {
-            ATTR_ATTRIBUTION: ATTRIBUTION,
-            "last_pulse": "",
-            "rank_clicks": 0,
-        }
-        self._state = None
-        self._api = api
-
-    @property
-    def name(self):
-        return SENSOR_CLICKS_NAME
-
-    @property
-    def state(self):
-        return self._state
-
-    @property
-    def unit_of_measurement(self):
-        return "Clicks"
-
-    @property
-    def device_state_attributes(self):
-        return self._attributes
-
-    @property
-    def icon(self):
-        return SENSOR_CLICKS_ICON
-
-    @Throttle(MIN_TIME_BETWEEN_UPDATES)
-    def update(self):
-        data = self._api._update_data()
-
-        self._attributes["last_pulse"] = data.find("LastPulse").text
-
-        ranks = data.find("Ranks")
-        self._attributes["rank_clicks"] = ranks.find("Clicks").text
-
-        self._state = data.find("Clicks").text
-
-class WhatpulseSensor(Entity):
-    """Representation of a Whatpulse sensor."""
-
-    def __init__(self, api):
-        """Initialize the Whatpulse sensor."""
-        self._attributes = {
-            ATTR_ATTRIBUTION: ATTRIBUTION,
-            "last_pulse": "",
-            "pulses": 0,
-            "clicks": 0,
-            "download_mb": 0.0,
-            "upload_mb": 0.0,
-            "uptime_seconds": 0.0,
-            "rank_keys": 0,
-            "rank_clicks": 0,
-            "rank_download": 0,
-            "rank_upload": 0,
-            "rank_upload": 0
-        }
-        self._state = None
-        self._api = api
-
-    @property
-    def name(self):
-        """Return the name of the sensor."""
-        return DEFAULT_NAME
-
-    @property
-    def state(self):
-        """Return the state of the sensor."""
-        return self._state
-
-    @property
-    def unit_of_measurement(self):
-        """Return the unit of measurement of this entity, if any."""
-        return "Keys"
-
-    @property
-    def device_state_attributes(self):
-        """Return the state attributes."""
-        return self._attributes
-
-    @property
-    def icon(self):
-        """Icon to use in the frontend."""
-        return ICON
-
-    @Throttle(MIN_TIME_BETWEEN_UPDATES)
-    def update(self):
-        """Update device state."""
-        data = self._api._update_data()
-
-        self._attributes["last_pulse"] = data.find("LastPulse").text
-        self._attributes["pulses"] = data.find("Pulses").text
-        self._attributes["clicks"] = data.find("Clicks").text
-        self._attributes["download_mb"] = data.find("DownloadMB").text
-        self._attributes["upload_mb"] = data.find("UploadMB").text
-        self._attributes["uptime_seconds"] = data.find("UptimeSeconds").text
-
-        ranks = data.find("Ranks")
-        self._attributes["rank_keys"] = ranks.find("Keys").text
-        self._attributes["rank_clicks"] = ranks.find("Clicks").text
-        self._attributes["rank_download"] = ranks.find("Download").text
-        self._attributes["rank_upload"] = ranks.find("Upload").text
-        self._attributes["rank_uptime"] = ranks.find("Uptime").text
-
-        self._state = data.find("Keys").text
