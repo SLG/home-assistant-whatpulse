@@ -2,7 +2,7 @@
 
 from datetime import time
 from datetime import datetime
-import logging/
+import logging
 
 import voluptuous as vol
 
