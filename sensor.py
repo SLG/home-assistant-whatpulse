@@ -2,16 +2,17 @@
 
 from datetime import time
 from datetime import datetime
-import logging
+from datetime import timedelta
 
+import logging
 import voluptuous as vol
+import requests
 
 from homeassistant.components.sensor import PLATFORM_SCHEMA
 from homeassistant.const import CONF_USERNAME
-
+from homeassistant.util import Throttle
 import homeassistant.helpers.config_validation as cv
 
-import requests
 from xml.etree import ElementTree
 
 DATA_URL = "http://api.whatpulse.org/user.php?user="
