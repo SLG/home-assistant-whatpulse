@@ -14,12 +14,6 @@ import homeassistant.helpers.config_validation as cv
 import requests
 from xml.etree import ElementTree
 
-from .keys import WhatpulseKeysSensor
-from .clicks import WhatpulseClicksSensor
-from .download import WhatpulseDownloadSensor
-from .upload import WhatpulseUploadSensor
-from .uptime import WhatpulseUptimeSensor
-
 DATA_URL = "http://api.whatpulse.org/user.php?user="
 
 _LOGGER = logging.getLogger(__name__)
@@ -27,6 +21,7 @@ _LOGGER = logging.getLogger(__name__)
 ATTRIBUTION = "Information provided by Whatpulse"
 
 REFRESH_RATE = 120
+MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=120)
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Required(CONF_USERNAME): cv.string,
@@ -38,11 +33,11 @@ async def async_setup_platform(hass, config, async_add_devices, discovery_info=N
     username = config.get(CONF_USERNAME)
     api = WhatpulseAPI(username)
     async_add_devices([
-    WhatpulseKeysSensor(api),
-    WhatpulseClicksSensor(api),
-    WhatpulseDownloadSensor(api),
-    WhatpulseUploadSensor(api),
-    WhatpulseUptimeSensor(api),
+    WhatpulseSensor(api, "Keys", "mdi:keyboard"),
+    WhatpulseSensor(api, "Clicks", "mdi:mouse"),
+    WhatpulseSensor(api, "Download", "mdi:download"),
+    WhatpulseSensor(api, "Upload", "mdi:upload"),
+    WhatpulseSensor(api, "Uptime", "mdi:clock"),
     ], True)
 
 class WhatpulseAPI(object):
@@ -82,3 +77,42 @@ class WhatpulseAPI(object):
             return False
 
         return ElementTree.fromstring(response.content)
+
+
+def class WhatpulseSensor(Entity, Type, Icon):
+    def __init__(self, api):
+        self._attributes = {
+            "Last Pulse": "",
+            "Rank": 0,
+        }
+        self._state = None
+        self._api = api
+
+    @property
+    def name(self):
+        return "Whatpulse " + Type + " Sensor"
+
+    @property
+    def state(self):
+        return self._state
+
+    @property
+    def unit_of_measurement(self):
+        return Type
+
+    @property
+    def device_state_attributes(self):
+        return self._attributes
+
+    @property
+    def icon(self):
+        return Icon
+
+    @Throttle(MIN_TIME_BETWEEN_UPDATES)
+    def update(self):
+        data = self._api._update_data()
+
+        self._attributes["Last Pulse"] = data.find("LastPulse").text
+        self._attributes["Rank"] = data.find("Ranks").find(Type).text
+
+        self._state = data.find(Type).text
