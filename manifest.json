@@ -1,8 +1,10 @@
 {
   "domain": "whatpulse",
   "name": "Whatpulse",
-  "documentation": "https://www.home-assistant.io/integrations/postnl",
+  "documentation": "https://github.com/SLG/whatpulse_sensor",
   "requirements": [],
   "dependencies": [],
-  "codeowners": []
+  "codeowners": [
+    "@SLG"
+  ]
 }

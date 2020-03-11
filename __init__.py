@@ -1,1 +1,1 @@
-""" the whatpulse component """
+""" the Whatpulse component """

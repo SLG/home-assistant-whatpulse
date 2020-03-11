@@ -28,8 +28,13 @@ _LOGGER = logging.getLogger(__name__)
 ATTRIBUTION = "Information provided by Whatpulse"
 
 DEFAULT_NAME = "Whatpulse stats"
-
 ICON = "mdi:podium-gold"
+
+SENSOR_KEYS_NAME = "Whatpulse Keys Sensor"
+SENSOR_KEYS_ICON = "mdi:podium-gold"
+
+SENSOR_CLICKS_NAME = "Whatpulse Clicks Sensor"
+SENSOR_CLICKS_ICON = "mdi:podium-gold"
 
 MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=10)
 
@@ -43,11 +48,11 @@ async def async_setup_platform(hass, config, async_add_devices, discovery_info=N
     """Set up the Whatpulse sensor platform"""
 
     username = config.get(CONF_USERNAME)
-    api = Whatpulse_API(username)
-    async_add_devices([WhatpulseSensor(api)], True)
+    api = WhatpulseAPI(username)
+    async_add_devices([WhatpulseKeysSensor(api), WhatpulseClicksSensor(api) WhatpulseSensor(api)], True)
 
-class Whatpulse_API(object):
-    """ Interface class for the Greenchoice Boks API """
+class WhatpulseAPI(object):
+    """ Interface class for the Whatpulse API """
 
     def __init__(self, user, refresh_rate=REFRESH_RATE):
         """ Constructor """
@@ -69,7 +74,7 @@ class Whatpulse_API(object):
         """ Retrieve data """
         data = self._request_update(DATA_URL + self._user)
         if data is False:
-            print
+            _LOGGER.info("Received no data")
             return
         _LOGGER.info(data)
         return data
@@ -83,6 +88,90 @@ class Whatpulse_API(object):
             return False
 
         return ElementTree.fromstring(response.content)
+
+class WhatpulseKeysSensor(Entity):
+
+    def __init__(self, api):
+        self._attributes = {
+            ATTR_ATTRIBUTION: ATTRIBUTION,
+            "last_pulse": "",
+            "rank_keys": 0,
+        }
+        self._state = None
+        self._api = api
+
+    @property
+    def name(self):
+        return SENSOR_KEYS_NAME
+
+    @property
+    def state(self):
+        return self._state
+
+    @property
+    def unit_of_measurement(self):
+        return "Keys"
+
+    @property
+    def device_state_attributes(self):
+        return self._attributes
+
+    @property
+    def icon(self):
+        return ICON
+
+    @Throttle(MIN_TIME_BETWEEN_UPDATES)
+    def update(self):
+        """Update device state."""
+        data = self._api._update_data()
+
+        self._attributes["last_pulse"] = data.find("LastPulse").text
+
+        ranks = data.find("Ranks")
+        self._attributes["rank_keys"] = ranks.find("Keys").text
+
+        self._state = data.find("Keys").text
+
+class WhatpulseClicksSensor(Entity):
+    def __init__(self, api):
+        self._attributes = {
+            ATTR_ATTRIBUTION: ATTRIBUTION,
+            "last_pulse": "",
+            "rank_clicks": 0,
+        }
+        self._state = None
+        self._api = api
+
+    @property
+    def name(self):
+        return SENSOR_CLICKS_NAME
+
+    @property
+    def state(self):
+        return self._state
+
+    @property
+    def unit_of_measurement(self):
+        return "Clicks"
+
+    @property
+    def device_state_attributes(self):
+        return self._attributes
+
+    @property
+    def icon(self):
+        return SENSOR_CLICKS_ICON
+
+    @Throttle(MIN_TIME_BETWEEN_UPDATES)
+    def update(self):
+        data = self._api._update_data()
+
+        self._attributes["last_pulse"] = data.find("LastPulse").text
+
+        ranks = data.find("Ranks")
+        self._attributes["rank_clicks"] = ranks.find("Clicks").text
+
+        self._state = data.find("Clicks").text
 
 class WhatpulseSensor(Entity):
     """Representation of a Whatpulse sensor."""
@@ -142,7 +231,7 @@ class WhatpulseSensor(Entity):
         self._attributes["download_mb"] = data.find("DownloadMB").text
         self._attributes["upload_mb"] = data.find("UploadMB").text
         self._attributes["uptime_seconds"] = data.find("UptimeSeconds").text
-        
+
         ranks = data.find("Ranks")
         self._attributes["rank_keys"] = ranks.find("Keys").text
         self._attributes["rank_clicks"] = ranks.find("Clicks").text
@@ -151,4 +240,3 @@ class WhatpulseSensor(Entity):
         self._attributes["rank_uptime"] = ranks.find("Uptime").text
 
         self._state = data.find("Keys").text
-
