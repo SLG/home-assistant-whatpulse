@@ -2,7 +2,7 @@
 
 from datetime import time
 from datetime import datetime
-import logging
+import logging/
 
 import voluptuous as vol
 
@@ -14,11 +14,11 @@ import homeassistant.helpers.config_validation as cv
 import requests
 from xml.etree import ElementTree
 
-import WhatpulseKeysSensor
-import WhatpulseClicksSensor
-import WhatpulseDownloadSensor
-import WhatpulseUploadSensor
-import WhatpulseUptimeSensor
+from sensor_keys import WhatpulseKeysSensor
+from sensor_clicks import WhatpulseClicksSensor
+from sensor_download import WhatpulseDownloadSensor
+from sensor_upload import WhatpulseUploadSensor
+from sensor_uptime import WhatpulseUptimeSensor
 
 DATA_URL = "http://api.whatpulse.org/user.php?user="
 
