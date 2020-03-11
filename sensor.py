@@ -20,8 +20,6 @@ DATA_URL = "http://api.whatpulse.org/user.php?user="
 
 _LOGGER = logging.getLogger(__name__)
 
-ATTRIBUTION = "Information provided by Whatpulse"
-
 REFRESH_RATE = 120
 MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=120)
 
@@ -30,30 +28,24 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
 })
 
 async def async_setup_platform(hass, config, async_add_devices, discovery_info=None):
-    """Set up the Whatpulse sensor platform"""
-
     username = config.get(CONF_USERNAME)
     api = WhatpulseAPI(username)
     async_add_devices([
-    WhatpulseSensor(api, "Keys", "Keys", "mdi:keyboard"),
-    WhatpulseSensor(api, "Clicks", "Clicks", "mdi:mouse"),
-    WhatpulseSensor(api, "DownloadMB", "Download", "mdi:download"),
-    WhatpulseSensor(api, "UploadMB", "Upload", "mdi:upload"),
-    WhatpulseSensor(api, "UptimeSeconds", "Uptime", "mdi:clock"),
+        WhatpulseSensor(api, "Keys", "Keys", "mdi:keyboard"),
+        WhatpulseSensor(api, "Clicks", "Clicks", "mdi:mouse"),
+        WhatpulseSensor(api, "DownloadMB", "Download", "mdi:download"),
+        WhatpulseSensor(api, "UploadMB", "Upload", "mdi:upload"),
+        WhatpulseSensor(api, "UptimeSeconds", "Uptime", "mdi:clock"),
     ], True)
 
 class WhatpulseAPI(object):
-    """ Interface class for the Whatpulse API """
-
     def __init__(self, user, refresh_rate=REFRESH_RATE):
-        """ Constructor """
         self._user = user
         self._data = {}
         self._last_refresh = None
         self._refresh_rate = refresh_rate
 
     def _update(self):
-        """ Update the cache """
         current_time = int(time.time())
         last_refresh = 0 if self._last_refresh is None else self._last_refresh
 
@@ -62,7 +54,6 @@ class WhatpulseAPI(object):
             self._last_refresh = int(time.time())
 
     def _update_data(self):
-        """ Retrieve data """
         data = self._request_update(DATA_URL + self._user)
         if data is False:
             _LOGGER.info("Received no data")
@@ -71,7 +62,6 @@ class WhatpulseAPI(object):
         return data
 
     def _request_update(self, url):
-        """ Perform a request to update information """
         response = requests.request("GET", url)
 
         if response.status_code != 200:
