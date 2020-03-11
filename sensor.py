@@ -49,7 +49,7 @@ async def async_setup_platform(hass, config, async_add_devices, discovery_info=N
 
     username = config.get(CONF_USERNAME)
     api = WhatpulseAPI(username)
-    async_add_devices([WhatpulseKeysSensor(api), WhatpulseClicksSensor(api) WhatpulseSensor(api)], True)
+    async_add_devices([WhatpulseKeysSensor(api), WhatpulseClicksSensor(api), WhatpulseSensor(api)], True)
 
 class WhatpulseAPI(object):
     """ Interface class for the Whatpulse API """
