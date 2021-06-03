@@ -6,5 +6,6 @@
   "dependencies": [],
   "codeowners": [
     "@SLG"
-  ]
+  ],
+  "version": "1.0"
 }
