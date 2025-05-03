@@ -1,11 +1,13 @@
 {
   "domain": "whatpulse",
-  "name": "Whatpulse",
+  "name": "WhatPulse",
   "documentation": "https://github.com/SLG/whatpulse_sensor",
   "requirements": [],
   "dependencies": [],
   "codeowners": [
-    "@SLG"
+    "@SLG",
+    "@smitmartijn",
+    "@whatpulse"
   ],
-  "version": "1.0"
+  "version": "2.0"
 }
