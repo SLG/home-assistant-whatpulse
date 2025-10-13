@@ -3,7 +3,7 @@
 from datetime import timedelta
 
 # API URLs
-PUBLIC_API_URL = "https://api.whatpulse.org/user.php?"
+PUBLIC_API_URL = "https://whatpulse.org/api/v1/users/"  # New API URL
 DEFAULT_CLIENT_API_URL = "http://localhost:3490"  # Default client API URL
 
 # Refresh rates
@@ -15,6 +15,7 @@ MIN_TIME_BETWEEN_UPDATES_CLIENT = timedelta(seconds=CLIENT_REFRESH_RATE)
 # Configuration constants
 DOMAIN = "whatpulse"
 CONF_USERID = "userid"
+CONF_API_TOKEN = "api_token"  # New API token configuration
 CONF_API_TYPE = "api_type"
 CONF_SENSORS = "sensors"
 CONF_CLIENT_API_URL = "client_api_url"

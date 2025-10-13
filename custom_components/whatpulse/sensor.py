@@ -19,6 +19,7 @@ from .const import (
     API_TYPE_CLIENT,
     API_TYPE_PUBLIC,
     CONF_API_TYPE,
+    CONF_API_TOKEN,
     CONF_CLIENT_API_URL,
     CONF_SENSORS,
     CONF_USERID,
@@ -39,6 +40,7 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Optional(CONF_USERNAME): cv.string,
     vol.Optional(CONF_USERID): cv.string,
+    vol.Optional(CONF_API_TOKEN): cv.string,
     vol.Optional(CONF_API_TYPE, default=DEFAULT_API_TYPE): vol.In(
         [API_TYPE_PUBLIC, API_TYPE_CLIENT, API_TYPE_BOTH]
     ),
@@ -52,17 +54,22 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
     """Set up the WhatPulse sensor platform."""
     username = config.get(CONF_USERNAME)
     userid = config.get(CONF_USERID)
+    api_token = config.get(CONF_API_TOKEN)
     api_type = config.get(CONF_API_TYPE)
     client_api_url = config.get(CONF_CLIENT_API_URL)
     sensor_types = config.get(CONF_SENSORS)
 
-    # Require username or userid only for public API
-    if api_type in [API_TYPE_PUBLIC, API_TYPE_BOTH] and not (username or userid):
-        _LOGGER.error("Either username or userid must be provided when using public API")
-        return False
+    # Require username or userid and api_token for public API
+    if api_type in [API_TYPE_PUBLIC, API_TYPE_BOTH]:
+        if not (username or userid):
+            _LOGGER.error("Either username or userid must be provided when using public API")
+            return False
+        if not api_token:
+            _LOGGER.error("API token must be provided when using public API")
+            return False
 
     # Initialize API based on configuration
-    api = WhatPulseAPI(username, userid, api_type, client_api_url)
+    api = WhatPulseAPI(username, userid, api_token, api_type, client_api_url)
 
     entities = []
     for sensor_type in sensor_types:
@@ -90,10 +97,11 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
 class WhatPulseAPI:
     """Class to handle WhatPulse API calls."""
 
-    def __init__(self, username=None, userid=None, api_type=DEFAULT_API_TYPE, client_api_url=DEFAULT_CLIENT_API_URL):
+    def __init__(self, username=None, userid=None, api_token=None, api_type=DEFAULT_API_TYPE, client_api_url=DEFAULT_CLIENT_API_URL):
         """Initialize the API."""
         self._username = username
         self._userid = userid
+        self._api_token = api_token
         self._api_type = api_type
         self._client_api_url = client_api_url
         self._data = {}
@@ -140,29 +148,192 @@ class WhatPulseAPI:
 
     def _request_update_public(self):
         """Request update from public WhatPulse API."""
-        # Build the URL based on what we have (userid preferred)
-        url = PUBLIC_API_URL
-
-        if self._userid:
-            url += f"userid={self._userid}&format=json"
-        elif self._username:
-            url += f"user={self._username}&format=json"
-        else:
+        if not (self._username or self._userid):
             _LOGGER.error("No username or userid provided for WhatPulse public API")
             return False
 
+        if not self._api_token:
+            _LOGGER.error("No API token provided for WhatPulse public API")
+            return False
+
+        # Use userid if available, otherwise use username
+        identifier = self._userid if self._userid else self._username
+        url = f"{PUBLIC_API_URL}{identifier}"
+        headers = {
+            "Authorization": f"Bearer {self._api_token}",
+            "Accept": "application/json",
+        }
+
         try:
-            response = requests.get(url, timeout=10)
+            response = requests.get(url, headers=headers, timeout=10)
 
             if response.status_code != 200:
-                _LOGGER.error(f"Unable to perform public API request: {response.content}")
+                _LOGGER.error(f"Unable to perform public API request: {response.status_code} - {response.content}")
                 return False
 
-            return response.json()
+            data = response.json()
+
+            # Convert new API format to old API format for backward compatibility, not to break existing sensor configurations
+            if "user" in data:
+                return self._convert_new_api_format(data["user"])
+            else:
+                _LOGGER.error("Invalid API response format")
+                return False
 
         except Exception as ex:
             _LOGGER.error(f"Error fetching WhatPulse public API data: {ex}")
             return False
+
+    def _convert_new_api_format(self, user_data):
+        """Convert new API format to old API format for backward compatibility."""
+        try:
+            # Map the new API structure to the old API structure
+            converted_data = {
+                "UserID": str(user_data["id"]),
+                "AccountName": user_data["username"],
+                "DateJoined": user_data["date_joined"][:10],
+                "LastPulse": user_data["last_pulse_date"][:19].replace("T", " "),
+                "Pulses": str(user_data["pulses"]),
+                # Map totals
+                "Keys": str(user_data["totals"]["keys"]),
+                "Clicks": str(user_data["totals"]["clicks"]),
+                "Scrolls": str(user_data["totals"]["scrolls"]),
+                "DistanceInMiles": str(user_data["totals"]["distance_miles"]),
+                # Add both raw MB values AND formatted values
+                "DownloadMB": user_data["totals"]["download_mb"],
+                "UploadMB": user_data["totals"]["upload_mb"],
+                "Download": self._format_bytes(user_data["totals"]["download_mb"] * 1024 * 1024),
+                "Upload": self._format_bytes(user_data["totals"]["upload_mb"] * 1024 * 1024),
+                "UptimeSeconds": str(user_data["totals"]["uptime_seconds"]),
+                "UptimeShort": self._format_uptime_short(user_data["totals"]["uptime_seconds"]),
+                "UptimeLong": self._format_uptime_long(user_data["totals"]["uptime_seconds"]),
+                # Calculate additional values that are missing from new API
+                "AvKeysPerPulse": str(round(user_data["totals"]["keys"] / user_data["pulses"], 2)) if user_data["pulses"] > 0 else "0",
+                "AvClicksPerPulse": str(round(user_data["totals"]["clicks"] / user_data["pulses"], 2)) if user_data["pulses"] > 0 else "0",
+                # Calculate average per second values based on uptime
+                "AvKPS": str(round(user_data["totals"]["keys"] / user_data["totals"]["uptime_seconds"], 4)) if user_data["totals"]["uptime_seconds"] > 0 else "0",
+                "AvCPS": str(round(user_data["totals"]["clicks"] / user_data["totals"]["uptime_seconds"], 4)) if user_data["totals"]["uptime_seconds"] > 0 else "0",
+                # Map ranks
+                "Ranks": {
+                    "Keys": str(user_data["ranks"]["keys"]),
+                    "Clicks": str(user_data["ranks"]["clicks"]),
+                    "Download": str(user_data["ranks"]["download"]),
+                    "Upload": str(user_data["ranks"]["upload"]),
+                    "Uptime": str(user_data["ranks"]["uptime"]),
+                    "Scrolls": str(user_data["ranks"]["scrolls"]),
+                    "Distance": str(user_data["ranks"]["distance"]),
+                }
+            }
+
+            # Add team information if available
+            if "team" in user_data and user_data["team"]:
+                team = user_data["team"]
+                converted_data["Team"] = {
+                    "TeamID": str(team["id"]),
+                    "Name": team["name"],
+                    "Members": str(team["totals"]["members_count"]),
+                    "Keys": str(team["totals"]["keys"]),
+                    "Clicks": str(team["totals"]["clicks"]),
+                    "Scrolls": str(team["totals"]["scrolls"]),
+                    "DistanceInMiles": str(team["totals"]["distance_miles"]),
+                    "DownloadMB": team["totals"]["download_mb"],
+                    "UploadMB": team["totals"]["upload_mb"],
+                    "UptimeSeconds": str(team["totals"]["uptime_seconds"]),
+                    "Description": team["description"],
+                    "DateFormed": team["date_formed"][:19].replace("T", " "),
+                    "Ranks": {
+                        "Keys": str(team["ranks"]["keys"]),
+                        "Clicks": str(team["ranks"]["clicks"]),
+                        "Download": str(team["ranks"]["download"]),
+                        "Upload": str(team["ranks"]["upload"]),
+                        "Uptime": str(team["ranks"]["uptime"]),
+                        "Scrolls": str(team["ranks"]["scrolls"]),
+                        "Distance": str(team["ranks"]["distance"]),
+                    }
+                }
+
+            # Add last pulse information if available
+            if "last_pulse" in user_data and user_data["last_pulse"]:
+                # Convert ISO datetime to Unix timestamp
+                import datetime as dt
+                converted_data["LastPulseUnixTimestamp"] = str(int(dt.datetime.fromisoformat(user_data["last_pulse_date"].replace("Z", "+00:00")).timestamp()))
+
+            return converted_data
+
+        except Exception as ex:
+            _LOGGER.error(f"Error converting new API format: {ex}")
+            return False
+
+    def _format_bytes(self, bytes_value):
+        """Format bytes into human readable format."""
+        for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+            if bytes_value < 1024.0:
+                return f"{bytes_value:.1f} {unit}"
+            bytes_value /= 1024.0
+        return f"{bytes_value:.1f} PB"
+
+    def _format_uptime_short(self, seconds):
+        """Format uptime in short format."""
+        years = seconds // 31536000  # 365 * 24 * 60 * 60
+        seconds %= 31536000
+        weeks = seconds // 604800    # 7 * 24 * 60 * 60
+        seconds %= 604800
+        days = seconds // 86400      # 24 * 60 * 60
+        seconds %= 86400
+        hours = seconds // 3600      # 60 * 60
+        seconds %= 3600
+        minutes = seconds // 60
+
+        parts = []
+        if years > 0:
+            parts.append(f"{years}y")
+        if weeks > 0:
+            parts.append(f"{weeks}w")
+        if days > 0:
+            parts.append(f"{days}d")
+        if hours > 0:
+            parts.append(f"{hours}h")
+        if minutes > 0:
+            parts.append(f"{minutes}m")
+
+        # Show at least minutes if everything else is 0
+        if not parts:
+            parts.append("0m")
+
+        return " ".join(parts)
+
+    def _format_uptime_long(self, seconds):
+        """Format uptime in long format."""
+        years = seconds // 31536000  # 365 * 24 * 60 * 60
+        seconds %= 31536000
+        weeks = seconds // 604800    # 7 * 24 * 60 * 60
+        seconds %= 604800
+        days = seconds // 86400      # 24 * 60 * 60
+        seconds %= 86400
+        hours = seconds // 3600      # 60 * 60
+        seconds %= 3600
+        minutes = seconds // 60
+        secs = seconds % 60
+
+        parts = []
+        if years > 0:
+            parts.append(f"{years} year{'s' if years != 1 else ''}")
+        if weeks > 0:
+            parts.append(f"{weeks} week{'s' if weeks != 1 else ''}")
+        if days > 0:
+            parts.append(f"{days} day{'s' if days != 1 else ''}")
+        if hours > 0:
+            parts.append(f"{hours} hour{'s' if hours != 1 else ''}")
+        if minutes > 0:
+            parts.append(f"{minutes} minute{'s' if minutes != 1 else ''}")
+        if secs > 0:
+            parts.append(f"{secs} second{'s' if secs != 1 else ''}")
+
+        # Show at least 0 seconds if everything else is 0
+        if not parts:
+            parts.append("0 seconds")
+
+        return ", ".join(parts)
 
     def _request_update_client(self):
         """Request update from WhatPulse client API."""
@@ -255,7 +426,7 @@ class WhatPulseSensor(SensorEntity):
         data = self._api._update()
 
         # Check if this is a rank sensor
-        is_rank = SENSOR_TYPES[self._sensor_type].get("is_rank", False)
+        is_rank = self._sensor_type.startswith("Rank")
 
         # Try to get data from client API first if available and applicable
         if "client" in data and self._client_path:
@@ -270,7 +441,7 @@ class WhatPulseSensor(SensorEntity):
                 if self._client_path and self._client_path[0] == "realtime":
                     return
 
-        # Fall back to public API data if available and no client data or realtime
+        # Fall back to public API data if available
         if "public" in data:
             public_data = data["public"]
 
@@ -279,6 +450,7 @@ class WhatPulseSensor(SensorEntity):
                 if "Ranks" in public_data and self._rank_key in public_data["Ranks"]:
                     self._state = public_data["Ranks"][self._rank_key]
                     self._attributes["data_source"] = "public"
+                    self._attributes["rank"] = self._state  # Set rank attribute for rank sensors
                 return
 
             # Update state if no client data or not a client-specific sensor

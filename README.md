@@ -22,6 +22,33 @@ This is a custom component for Home Assistant (https://home-assistant.io) that p
 - Configure with config below.
 - Restart Home Assistant.
 
+## ⚠️ Breaking Changes in v3.0
+
+**Version 3.0 introduces breaking changes for the public API configuration:**
+
+The WhatPulse public API has been updated to use authentication tokens. You'll need to:
+
+1. **Get your API token**: Visit your WhatPulse dashboard to generate an API token (https://whatpulse.org/dashboard/my/api)
+2. **Update your configuration**: Add `api_token`
+
+**Old configuration:**
+```yaml
+sensor:
+  - platform: whatpulse
+    username: your_username
+    api_type: public
+```
+
+**New configuration (v3.0+):**
+```yaml
+sensor:
+  - platform: whatpulse
+    username: your_username    # Either username or userid required
+    userid: your_user_id       # Either username or userid required
+    api_token: your_api_token
+    api_type: public
+```
+
 ## Configuration
 
 ### Basic Configuration
@@ -32,8 +59,9 @@ To use this component in your installation, add the following to your HA `config
 # Example configuration.yaml entry with public API
 sensor:
   - platform: whatpulse
-    userid: your_user_id  # preferred over username
-    api_type: public  # Options: public, client, both
+    userid: your_user_id       # Either username or userid required
+    api_token: your_api_token  # Required for public API
+    api_type: public           # Options: public, client, both
     sensors:
       - Keys
       - Clicks
@@ -49,9 +77,10 @@ For more advanced usage including client API and buttons:
 # Full configuration example
 sensor:
   - platform: whatpulse
-    userid: "12345"          # Preferred over username
-    username: an_user_name   # Used if userid is not provided
-    api_type: client         # Options: public, client, both
+    userid: "12345"          # Either username or userid required for public API
+    api_token: "your_bearer_token"  # Required for public API
+    username: an_user_name   # Alternative to userid
+    api_type: both           # Options: public, client, both
     client_api_url: "http://192.168.1.100:3490"  # WhatPulse client API URL
     sensors:
       - Keys
@@ -74,10 +103,13 @@ button:
 
 #### Sensor Platform
 - username (Optional): The username for the WhatPulse account
-- userid (Optional, preferred): The numeric user ID for the WhatPulse account
+- userid (Optional): The numeric user ID for the WhatPulse account (alternative to username)
+- api_token (Required for public API): Your WhatPulse API bearer token
 - api_type (Optional, default: public): The API type to use - public, client, or both
 - client_api_url (Optional, default: http://localhost:3490): URL for the client API
 - sensors (Optional): List of sensors to enable (see Available Sensors below)
+
+**Note**: For public API, you must provide either `username` or `userid` along with `api_token`.
 
 #### Button Platform
 - client_api_url (Required): URL for the client API
@@ -93,33 +125,33 @@ button:
 - DownloadMB: Total download in megabytes
 - UploadMB: Total upload in megabytes
 - UptimeSeconds: Total computer uptime in seconds
-- UptimeShort: Short formatted uptime string
-- UptimeLong: Long formatted uptime string
-- DistanceInMiles: Mouse cursor movement distance
-- Pulses: Number of pulses sent
+- UptimeShort: Short formatted uptime string (e.g., "6y 46w 1d 17h 44m")
+- UptimeLong: Long formatted uptime string (e.g., "6 years, 46 weeks, 1 day, 17 hours, 44 minutes, 51 seconds")
+- DistanceInMiles: Mouse cursor movement distance in miles
+- Pulses: Number of pulses sent to WhatPulse
 - AvKeysPerPulse: Average keys per pulse
 - AvClicksPerPulse: Average clicks per pulse
-- AvKPS: Average keys per second
-- AvCPS: Average clicks per second
-- RankKeys: Ranking position for keys
-- RankClicks: Ranking position for clicks
-- RankDownload: Ranking position for download
-- RankUpload: Ranking position for upload
-- RankUptime: Ranking position for uptime
-- RankScrolls: Ranking position for scrolls
-- RankDistance: Ranking position for mouse distance
+- AvKPS: Average keys per second (calculated from total keys / uptime)
+- AvCPS: Average clicks per second (calculated from total clicks / uptime)
+- RankKeys: Global ranking position for keys
+- RankClicks: Global ranking position for clicks
+- RankDownload: Global ranking position for download
+- RankUpload: Global ranking position for upload
+- RankUptime: Global ranking position for uptime
+- RankScrolls: Global ranking position for scrolls
+- RankDistance: Global ranking position for mouse distance
 
-**Client API Sensors**
+**Client API Sensors** *(Requires WhatPulse client with API enabled)*
 - RealtimeKeys: Current keys per second
 - RealtimeClicks: Current clicks per second
-- RealtimeDownload: Current download speed
-- RealtimeUpload: Current upload speed
-- UnpulsedKeys: Keys since last pulse
-- UnpulsedClicks: Clicks since last pulse
-- UnpulsedScrolls: Scrolls since last pulse
-- UnpulsedDownload: Download since last pulse
-- UnpulsedUpload: Upload since last pulse
-- UnpulsedUptime: Uptime since last pulse
+- RealtimeDownload: Current download speed (formatted)
+- RealtimeUpload: Current upload speed (formatted)
+- UnpulsedKeys: Keys pressed since last pulse
+- UnpulsedClicks: Clicks made since last pulse
+- UnpulsedScrolls: Scrolls made since last pulse
+- UnpulsedDownload: Bytes downloaded since last pulse
+- UnpulsedUpload: Bytes uploaded since last pulse
+- UnpulsedUptime: Uptime seconds since last pulse
 
 #### Button Controls
 When the client API is enabled, you'll have access to these buttons:
