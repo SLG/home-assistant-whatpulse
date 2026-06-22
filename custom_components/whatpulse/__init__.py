@@ -1,10 +1,8 @@
 """The WhatPulse integration."""
 import logging
-import asyncio
 
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.helpers.discovery import load_platform
 
 from .const import (
     DOMAIN,
@@ -30,34 +28,31 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = entry.data
 
-    # Set up each platform for this config entry
-    for platform in PLATFORMS:
-        # Only set up button if client API is enabled
-        if platform == "button" and entry.data.get(CONF_API_TYPE) not in [API_TYPE_CLIENT, API_TYPE_BOTH]:
-            continue
+    api_type = entry.data.get(CONF_API_TYPE)
 
-        hass.async_create_task(
-            hass.config_entries.async_forward_entry_setup(entry, platform)
-        )
+    # Determine which platforms to load
+    platforms_to_load = ["sensor"]
+    if api_type in [API_TYPE_CLIENT, API_TYPE_BOTH]:
+        platforms_to_load.append("button")
+
+    hass.data[DOMAIN][entry.entry_id + "_platforms"] = platforms_to_load
+
+    await hass.config_entries.async_forward_entry_setups(entry, platforms_to_load)
 
     # Set up services if client API is enabled
-    if entry.data.get(CONF_API_TYPE) in [API_TYPE_CLIENT, API_TYPE_BOTH]:
+    if api_type in [API_TYPE_CLIENT, API_TYPE_BOTH]:
         setup_services(hass, entry.data)
 
     return True
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Unload a config entry."""
-    unload_ok = all(
-        await asyncio.gather(
-            *[
-                hass.config_entries.async_forward_entry_unload(entry, platform)
-                for platform in PLATFORMS
-            ]
-        )
-    )
+    platforms_to_unload = hass.data[DOMAIN].get(entry.entry_id + "_platforms", PLATFORMS)
+
+    unload_ok = await hass.config_entries.async_unload_platforms(entry, platforms_to_unload)
 
     if unload_ok:
-        hass.data[DOMAIN].pop(entry.entry_id)
+        hass.data[DOMAIN].pop(entry.entry_id, None)
+        hass.data[DOMAIN].pop(entry.entry_id + "_platforms", None)
 
     return unload_ok

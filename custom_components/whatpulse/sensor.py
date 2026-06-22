@@ -50,6 +50,44 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     ),
 })
 
+async def async_setup_entry(hass, config_entry, async_add_entities):
+    """Set up WhatPulse sensors from a config entry."""
+    data = config_entry.data
+    username = data.get(CONF_USERNAME)
+    userid = data.get(CONF_USERID)
+    api_token = data.get(CONF_API_TOKEN)
+    api_type = data.get(CONF_API_TYPE, DEFAULT_API_TYPE)
+    client_api_url = data.get(CONF_CLIENT_API_URL, DEFAULT_CLIENT_API_URL)
+    sensor_types = data.get(CONF_SENSORS, DEFAULT_SENSORS)
+
+    api = WhatPulseAPI(username, userid, api_token, api_type, client_api_url)
+
+    entities = []
+    for sensor_type in sensor_types:
+        if sensor_type not in SENSOR_TYPES:
+            continue
+        sensor_info = SENSOR_TYPES[sensor_type]
+
+        # Skip client-only sensors if not using client API
+        if api_type == API_TYPE_PUBLIC and sensor_info["client_path"] is not None and sensor_info["client_path"][0] in ["realtime", "unpulsed"]:
+            _LOGGER.warning(f"Skipping {sensor_type} as it requires client API access")
+            continue
+
+        entities.append(
+            WhatPulseSensor(
+                api,
+                sensor_type,
+                sensor_info["name"],
+                sensor_info["rank_key"],
+                sensor_info["icon"],
+                sensor_info["unit"],
+                sensor_info["client_path"],
+            )
+        )
+
+    async_add_entities(entities, True)
+
+
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
     """Set up the WhatPulse sensor platform."""
     username = config.get(CONF_USERNAME)
