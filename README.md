@@ -89,6 +89,8 @@ After setup, you can update credentials/URL from:
 
 **Settings -> Devices & Services -> WhatPulse -> Configure**
 
+You can also select which sensor entities should be enabled from the same options screen.
+
 ### Legacy YAML (optional)
 
 YAML examples are kept below for advanced/manual scenarios.

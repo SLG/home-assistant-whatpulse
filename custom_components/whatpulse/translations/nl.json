@@ -46,7 +46,8 @@
           "userid": "Gebruikers-ID",
           "username": "Gebruikersnaam",
           "api_token": "API-token",
-          "client_api_url": "Client-API-URL"
+          "client_api_url": "Client-API-URL",
+          "sensors": "Ingeschakelde sensoren"
         }
       }
     },
@@ -56,9 +57,11 @@
       "invalid_auth": "Ongeldig API-token.",
       "user_not_found": "WhatPulse-gebruiker niet gevonden. Controleer de gebruikersnaam of het gebruikers-ID.",
       "invalid_response": "Onverwacht antwoord van de WhatPulse-API.",
+      "invalid_sensors": "Een of meer geselecteerde sensoren worden niet ondersteund voor het geconfigureerde API-type.",
       "missing_identifier": "Geef een gebruikersnaam of een gebruikers-ID op.",
       "unknown": "Er is een onverwachte fout opgetreden."
     }
   }
 }
+
 

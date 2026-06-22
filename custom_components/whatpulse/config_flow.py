@@ -24,6 +24,7 @@ from .const import (
     DEFAULT_CLIENT_API_URL,
     DEFAULT_SENSORS,
     PUBLIC_API_URL,
+    SENSOR_TYPES,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -65,6 +66,27 @@ def _build_entry_title(data: dict) -> str:
 
     identifier = data.get(CONF_USERID) or data.get(CONF_USERNAME) or "WhatPulse"
     return f"WhatPulse ({identifier})"
+
+
+def _is_client_only_sensor(sensor_info: dict) -> bool:
+    """Return True if sensor is only available from the local client API."""
+    client_path = sensor_info.get("client_path")
+    return client_path is not None and client_path[0] in ["realtime", "unpulsed"]
+
+
+def _sensor_options_for_api_type(api_type: str) -> dict:
+    """Build options list for sensors supported by selected API type."""
+    options = {}
+    for sensor_key, sensor_info in SENSOR_TYPES.items():
+        if api_type == API_TYPE_PUBLIC and _is_client_only_sensor(sensor_info):
+            continue
+        if api_type == API_TYPE_CLIENT and sensor_info.get("client_path") is None:
+            continue
+
+        # Use key in label to avoid ambiguity between similarly named sensors.
+        options[sensor_key] = f"{sensor_info['name']} ({sensor_key})"
+
+    return options
 
 
 def _validate_public_api(userid: str | None, username: str | None, api_token: str) -> dict:
@@ -307,6 +329,8 @@ class WhatPulseOptionsFlow(config_entries.OptionsFlow):
         current_data = {**self._config_entry.data, **self._config_entry.options}
 
         if user_input is not None:
+            user_input = dict(user_input)
+
             # Validate public API settings if applicable
             api_type = current_data.get(CONF_API_TYPE, DEFAULT_API_TYPE)
             if api_type in [API_TYPE_PUBLIC, API_TYPE_BOTH]:
@@ -329,11 +353,28 @@ class WhatPulseOptionsFlow(config_entries.OptionsFlow):
                     errors = await self.hass.async_add_executor_job(
                         _validate_client_api, client_api_url
                     )
+                    user_input[CONF_CLIENT_API_URL] = client_api_url
+
+            if not errors:
+                sensor_options = _sensor_options_for_api_type(api_type)
+                selected_sensors = list(user_input.get(CONF_SENSORS, []))
+                invalid_selection = [sensor for sensor in selected_sensors if sensor not in sensor_options]
+                if invalid_selection:
+                    errors["base"] = "invalid_sensors"
+                else:
+                    user_input[CONF_SENSORS] = selected_sensors
 
             if not errors:
                 return self.async_create_entry(title="", data=user_input)
 
         api_type = current_data.get(CONF_API_TYPE, DEFAULT_API_TYPE)
+        sensor_options = _sensor_options_for_api_type(api_type)
+        default_sensors = [
+            sensor
+            for sensor in current_data.get(CONF_SENSORS, DEFAULT_SENSORS)
+            if sensor in sensor_options
+        ]
+
         fields: dict = {}
 
         if api_type in [API_TYPE_PUBLIC, API_TYPE_BOTH]:
@@ -346,6 +387,13 @@ class WhatPulseOptionsFlow(config_entries.OptionsFlow):
                 CONF_CLIENT_API_URL,
                 default=current_data.get(CONF_CLIENT_API_URL, DEFAULT_CLIENT_API_URL),
             )] = cv.string
+
+        fields[
+            vol.Optional(
+                CONF_SENSORS,
+                default=default_sensors,
+            )
+        ] = cv.multi_select(sensor_options)
 
         return self.async_show_form(
             step_id="init",

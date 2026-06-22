@@ -46,7 +46,8 @@
           "userid": "User ID",
           "username": "Username",
           "api_token": "API token",
-          "client_api_url": "Client API URL"
+          "client_api_url": "Client API URL",
+          "sensors": "Enabled sensors"
         }
       }
     },
@@ -56,6 +57,7 @@
       "invalid_auth": "Invalid API token.",
       "user_not_found": "WhatPulse user not found. Please check the username or User ID.",
       "invalid_response": "Unexpected response from the WhatPulse API.",
+      "invalid_sensors": "One or more selected sensors are not supported for the configured API type.",
       "missing_identifier": "Please provide either a username or a User ID.",
       "unknown": "An unexpected error occurred."
     }
