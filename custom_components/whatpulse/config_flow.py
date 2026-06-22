@@ -24,10 +24,47 @@ from .const import (
     DEFAULT_CLIENT_API_URL,
     DEFAULT_SENSORS,
     PUBLIC_API_URL,
-    SENSOR_TYPES,
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _build_unique_id(data: dict) -> str | None:
+    """Build a stable unique ID for config entries."""
+    api_type = data.get(CONF_API_TYPE, DEFAULT_API_TYPE)
+    userid = (data.get(CONF_USERID) or "").strip()
+    username = (data.get(CONF_USERNAME) or "").strip()
+    client_api_url = (data.get(CONF_CLIENT_API_URL) or DEFAULT_CLIENT_API_URL).rstrip("/").lower()
+
+    identifier = userid or username
+
+    if api_type == API_TYPE_CLIENT:
+        return f"client:{client_api_url}"
+
+    if api_type == API_TYPE_BOTH:
+        if identifier:
+            return f"both:{identifier.lower()}@{client_api_url}"
+        return f"both:{client_api_url}"
+
+    if identifier:
+        return f"public:{identifier.lower()}"
+
+    return None
+
+
+def _build_entry_title(data: dict) -> str:
+    """Build a human-readable config entry title."""
+    api_type = data[CONF_API_TYPE]
+
+    if api_type == API_TYPE_PUBLIC:
+        identifier = data.get(CONF_USERID) or data.get(CONF_USERNAME) or "WhatPulse"
+        return f"WhatPulse ({identifier})"
+
+    if api_type == API_TYPE_CLIENT:
+        return f"WhatPulse Client ({data.get(CONF_CLIENT_API_URL, DEFAULT_CLIENT_API_URL)})"
+
+    identifier = data.get(CONF_USERID) or data.get(CONF_USERNAME) or "WhatPulse"
+    return f"WhatPulse ({identifier})"
 
 
 def _validate_public_api(userid: str | None, username: str | None, api_token: str) -> dict:
@@ -78,6 +115,45 @@ class WhatPulseConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def __init__(self) -> None:
         """Initialize the config flow."""
         self._data: dict = {}
+
+    async def async_step_import(
+        self, user_input: dict | None = None
+    ) -> config_entries.FlowResult:
+        """Import configuration from legacy YAML."""
+        if not user_input:
+            _LOGGER.warning("WhatPulse YAML import called without data; aborting.")
+            return self.async_abort(reason="unknown")
+
+        self._data = {
+            CONF_API_TYPE: user_input.get(CONF_API_TYPE, DEFAULT_API_TYPE),
+            CONF_USERID: (user_input.get(CONF_USERID) or "").strip(),
+            CONF_USERNAME: (user_input.get(CONF_USERNAME) or "").strip(),
+            CONF_API_TOKEN: (user_input.get(CONF_API_TOKEN) or "").strip(),
+            CONF_CLIENT_API_URL: (user_input.get(CONF_CLIENT_API_URL) or DEFAULT_CLIENT_API_URL).rstrip("/"),
+            CONF_SENSORS: user_input.get(CONF_SENSORS, DEFAULT_SENSORS),
+        }
+
+        unique_id = _build_unique_id(self._data)
+        _LOGGER.debug(
+            "Processing WhatPulse YAML import (unique_id=%s, api_type=%s)",
+            unique_id,
+            self._data.get(CONF_API_TYPE),
+        )
+        if unique_id:
+            for entry in self._async_current_entries():
+                if entry.unique_id == unique_id:
+                    # Keep existing installs in sync when YAML import changes.
+                    self.hass.config_entries.async_update_entry(entry, data=self._data)
+                    _LOGGER.info(
+                        "Updated existing WhatPulse config entry from YAML import (entry_id=%s, unique_id=%s).",
+                        entry.entry_id,
+                        unique_id,
+                    )
+                    return self.async_abort(reason="already_configured")
+            await self.async_set_unique_id(unique_id)
+
+        _LOGGER.info("Creating WhatPulse config entry from YAML import.")
+        return self.async_create_entry(title=_build_entry_title(self._data), data=self._data)
 
     async def async_step_user(
         self, user_input: dict | None = None
@@ -142,7 +218,7 @@ class WhatPulseConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     return await self.async_step_client_config()
 
                 # Public-only: done
-                return self._create_entry()
+                return await self._create_entry()
 
         schema = vol.Schema(
             {
@@ -176,7 +252,7 @@ class WhatPulseConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             if not errors:
                 self._data[CONF_CLIENT_API_URL] = client_api_url
-                return self._create_entry()
+                return await self._create_entry()
 
         schema = vol.Schema(
             {
@@ -192,21 +268,22 @@ class WhatPulseConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-    def _create_entry(self) -> config_entries.FlowResult:
+    async def _create_entry(self) -> config_entries.FlowResult:
         """Create the config entry."""
-        api_type = self._data[CONF_API_TYPE]
+        unique_id = _build_unique_id(self._data)
+        if unique_id:
+            await self.async_set_unique_id(unique_id)
+            self._abort_if_unique_id_configured()
 
-        # Build a human-readable title
-        if api_type == API_TYPE_PUBLIC:
-            identifier = self._data.get(CONF_USERID) or self._data.get(CONF_USERNAME) or "WhatPulse"
-            title = f"WhatPulse ({identifier})"
-        elif api_type == API_TYPE_CLIENT:
-            title = f"WhatPulse Client ({self._data.get(CONF_CLIENT_API_URL, DEFAULT_CLIENT_API_URL)})"
-        else:
-            identifier = self._data.get(CONF_USERID) or self._data.get(CONF_USERNAME) or "WhatPulse"
-            title = f"WhatPulse ({identifier})"
-
-        return self.async_create_entry(title=title, data=self._data)
+        _LOGGER.info(
+            "Creating WhatPulse config entry from user flow (api_type=%s, unique_id=%s).",
+            self._data.get(CONF_API_TYPE),
+            unique_id,
+        )
+        return self.async_create_entry(
+            title=_build_entry_title(self._data),
+            data=self._data,
+        )
 
     @staticmethod
     @callback

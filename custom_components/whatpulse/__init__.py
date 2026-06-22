@@ -1,15 +1,24 @@
 """The WhatPulse integration."""
 import logging
 
+from homeassistant import config_entries
+from homeassistant.const import CONF_PLATFORM, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 
 from .const import (
     DOMAIN,
     CONF_API_TYPE,
+    CONF_API_TOKEN,
     CONF_CLIENT_API_URL,
+    CONF_SENSORS,
+    CONF_USERID,
+    DEFAULT_API_TYPE,
+    DEFAULT_CLIENT_API_URL,
+    DEFAULT_SENSORS,
     API_TYPE_CLIENT,
-    API_TYPE_BOTH
+    API_TYPE_BOTH,
+    API_TYPE_PUBLIC,
 )
 from .services import setup_services
 
@@ -20,6 +29,71 @@ PLATFORMS = ["sensor", "button"]
 
 async def async_setup(hass: HomeAssistant, config):
     """Set up the WhatPulse component from YAML."""
+    sensor_configs = [
+        entry
+        for entry in config.get("sensor", [])
+        if entry.get(CONF_PLATFORM) == DOMAIN
+    ]
+    button_configs = [
+        entry
+        for entry in config.get("button", [])
+        if entry.get(CONF_PLATFORM) == DOMAIN
+    ]
+
+    if not sensor_configs and not button_configs:
+        return True
+
+    _LOGGER.info(
+        "Legacy WhatPulse YAML detected (sensor entries: %s, button entries: %s). Starting automatic import to config entry.",
+        len(sensor_configs),
+        len(button_configs),
+    )
+
+    if len(sensor_configs) > 1 or len(button_configs) > 1:
+        _LOGGER.warning(
+            "Multiple legacy WhatPulse YAML platform entries found; only the first sensor/button entry is auto-imported."
+        )
+
+    sensor_config = sensor_configs[0] if sensor_configs else {}
+    button_config = button_configs[0] if button_configs else {}
+
+    api_type = sensor_config.get(CONF_API_TYPE, DEFAULT_API_TYPE)
+    if button_config and api_type == API_TYPE_PUBLIC:
+        api_type = API_TYPE_BOTH
+    elif not sensor_config and button_config:
+        api_type = API_TYPE_CLIENT
+
+    import_data = {
+        CONF_API_TYPE: api_type,
+        CONF_USERID: sensor_config.get(CONF_USERID, ""),
+        CONF_USERNAME: sensor_config.get(CONF_USERNAME, ""),
+        CONF_API_TOKEN: sensor_config.get(CONF_API_TOKEN, ""),
+        CONF_CLIENT_API_URL: sensor_config.get(
+            CONF_CLIENT_API_URL,
+            button_config.get(CONF_CLIENT_API_URL, DEFAULT_CLIENT_API_URL),
+        ),
+        CONF_SENSORS: sensor_config.get(CONF_SENSORS, DEFAULT_SENSORS),
+    }
+
+    _LOGGER.debug(
+        "Preparing WhatPulse YAML import (api_type=%s, userid_set=%s, username_set=%s, client_api_url=%s, sensors=%s)",
+        import_data.get(CONF_API_TYPE),
+        bool(import_data.get(CONF_USERID)),
+        bool(import_data.get(CONF_USERNAME)),
+        import_data.get(CONF_CLIENT_API_URL),
+        len(import_data.get(CONF_SENSORS, [])),
+    )
+
+    hass.async_create_task(
+        hass.config_entries.flow.async_init(
+            DOMAIN,
+            context={"source": config_entries.SOURCE_IMPORT},
+            data=import_data,
+        )
+    )
+
+    _LOGGER.info("Triggered WhatPulse YAML import flow.")
+
     return True
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
