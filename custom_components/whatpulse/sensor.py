@@ -52,7 +52,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up WhatPulse sensors from a config entry."""
-    data = config_entry.data
+    data = {**config_entry.data, **config_entry.options}
     username = data.get(CONF_USERNAME)
     userid = data.get(CONF_USERID)
     api_token = data.get(CONF_API_TOKEN)

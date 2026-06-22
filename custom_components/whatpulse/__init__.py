@@ -27,6 +27,11 @@ _LOGGER = logging.getLogger(__name__)
 # List of platforms to support
 PLATFORMS = ["sensor", "button"]
 
+
+async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Handle options update by reloading the config entry."""
+    await hass.config_entries.async_reload(entry.entry_id)
+
 async def async_setup(hass: HomeAssistant, config):
     """Set up the WhatPulse component from YAML."""
     sensor_configs = [
@@ -98,11 +103,15 @@ async def async_setup(hass: HomeAssistant, config):
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Set up WhatPulse from a config entry."""
+    entry.async_on_unload(entry.add_update_listener(_async_update_listener))
+
+    runtime_config = {**entry.data, **entry.options}
+
     # Store entry data
     hass.data.setdefault(DOMAIN, {})
-    hass.data[DOMAIN][entry.entry_id] = entry.data
+    hass.data[DOMAIN][entry.entry_id] = runtime_config
 
-    api_type = entry.data.get(CONF_API_TYPE)
+    api_type = runtime_config.get(CONF_API_TYPE)
 
     # Determine which platforms to load
     platforms_to_load = ["sensor"]
@@ -115,7 +124,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     # Set up services if client API is enabled
     if api_type in [API_TYPE_CLIENT, API_TYPE_BOTH]:
-        setup_services(hass, entry.data)
+        setup_services(hass, runtime_config)
 
     return True
 

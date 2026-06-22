@@ -20,7 +20,7 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up WhatPulse buttons from a config entry."""
-    data = config_entry.data
+    data = {**config_entry.data, **config_entry.options}
     client_api_url = data.get(CONF_CLIENT_API_URL, DEFAULT_CLIENT_API_URL)
     api_type = data.get(CONF_API_TYPE)
 
