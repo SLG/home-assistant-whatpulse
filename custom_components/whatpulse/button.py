@@ -18,6 +18,37 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+async def async_setup_entry(hass, config_entry, async_add_entities):
+    """Set up WhatPulse buttons from a config entry."""
+    data = {**config_entry.data, **config_entry.options}
+    client_api_url = data.get(CONF_CLIENT_API_URL, DEFAULT_CLIENT_API_URL)
+    api_type = data.get(CONF_API_TYPE)
+
+    if api_type not in [API_TYPE_CLIENT, API_TYPE_BOTH]:
+        return
+
+    buttons = [
+        WhatPulseButton(
+            client_api_url,
+            "pulse",
+            "Pulse",
+            "mdi:pulse",
+            "Trigger a manual pulse",
+            "/v1/pulse"
+        ),
+        WhatPulseButton(
+            client_api_url,
+            "open_window",
+            "Open Client",
+            "mdi:window-maximize",
+            "Show the WhatPulse client window",
+            "/v1/open-window"
+        ),
+    ]
+
+    async_add_entities(buttons, True)
+
+
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
     """Set up the WhatPulse button platform."""
     # Get configuration from either discovery info or direct config

@@ -19,7 +19,7 @@ This is a custom component for Home Assistant (https://home-assistant.io) that p
 
 ### Manual installation
 - Copy directory `custom_components/whatpulse` to your `<config dir>/custom_components` directory.
-- Configure with config below.
+- Add the integration via **Settings -> Devices & Services -> Add Integration -> WhatPulse**.
 - Restart Home Assistant.
 
 ## ⚠️ Breaking Changes in v3.0
@@ -51,9 +51,49 @@ sensor:
 
 ## Configuration
 
-### Basic Configuration
+### UI Setup (Config Flow)
 
-To use this component in your installation, add the following to your HA `configuration.yaml` file:
+This integration now supports Home Assistant's UI config flow. You no longer need to add YAML for normal setup.
+
+1. Go to **Settings -> Devices & Services**.
+2. Click **Add Integration**.
+3. Search for **WhatPulse**.
+4. Choose an API type:
+   - `public`: WhatPulse cloud API (requires `api_token` + `username` or `userid`)
+   - `client`: local WhatPulse client API only
+   - `both`: combine public + local client data
+5. Fill in the requested fields for the selected mode.
+
+#### Public API values
+- `userid` or `username`
+- `api_token`
+
+#### Client API values
+- `client_api_url` (default: `http://localhost:3490`)
+
+### Updating Existing Configuration
+
+If you previously used YAML, the integration now attempts to auto-import your first legacy WhatPulse `sensor`/`button` platform configuration into a config entry on startup.
+
+After Home Assistant starts:
+
+1. Check **Settings -> Devices & Services** for the imported WhatPulse entry.
+2. Verify entities are present and updating.
+3. Remove old YAML blocks for `sensor:`, `button:`, and WhatPulse platform entries to avoid duplicate entities.
+
+If you have multiple legacy WhatPulse YAML entries, only the first `sensor` and first `button` entry are auto-imported.
+
+### Options Flow
+
+After setup, you can update credentials/URL from:
+
+**Settings -> Devices & Services -> WhatPulse -> Configure**
+
+You can also select which sensor entities should be enabled from the same options screen.
+
+### Legacy YAML (optional)
+
+YAML examples are kept below for advanced/manual scenarios.
 
 ```yaml
 # Example configuration.yaml entry with public API

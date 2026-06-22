@@ -8,7 +8,7 @@ DEFAULT_CLIENT_API_URL = "http://localhost:3490"  # Default client API URL
 
 # Refresh rates
 PUBLIC_REFRESH_RATE = 3600  # 60 minutes for public API
-CLIENT_REFRESH_RATE = 30   # 30 seconds for client API
+CLIENT_REFRESH_RATE = 30  # 30 seconds for client API
 MIN_TIME_BETWEEN_UPDATES_PUBLIC = timedelta(seconds=PUBLIC_REFRESH_RATE)
 MIN_TIME_BETWEEN_UPDATES_CLIENT = timedelta(seconds=CLIENT_REFRESH_RATE)
 
@@ -142,62 +142,62 @@ SENSOR_TYPES = {
         "client_path": None,
     },
     # Add these new sensor types to the SENSOR_TYPES dictionary
-  "RankKeys": {
-      "name": "Rank Keys",
-      "icon": "mdi:trophy",
-      "unit": "",
-      "rank_key": "Keys",
-      "client_path": ["account-totals", "ranks", "rank_keys"],
-      "is_rank": True,
-  },
-  "RankClicks": {
-      "name": "Rank Clicks",
-      "icon": "mdi:trophy",
-      "unit": "",
-      "rank_key": "Clicks",
-      "client_path": ["account-totals", "ranks", "rank_clicks"],
-      "is_rank": True,
-  },
-  "RankDownload": {
-      "name": "Rank Download",
-      "icon": "mdi:trophy",
-      "unit": "",
-      "rank_key": "Download",
-      "client_path": ["account-totals", "ranks", "rank_download"],
-      "is_rank": True,
-  },
-  "RankUpload": {
-      "name": "Rank Upload",
-      "icon": "mdi:trophy",
-      "unit": "",
-      "rank_key": "Upload",
-      "client_path": ["account-totals", "ranks", "rank_upload"],
-      "is_rank": True,
-  },
-  "RankUptime": {
-      "name": "Rank Uptime",
-      "icon": "mdi:trophy",
-      "unit": "",
-      "rank_key": "Uptime",
-      "client_path": ["account-totals", "ranks", "rank_uptime"],
-      "is_rank": True,
-  },
-  "RankScrolls": {
-      "name": "Rank Scrolls",
-      "icon": "mdi:trophy",
-      "unit": "",
-      "rank_key": "Scrolls",
-      "client_path": ["account-totals", "ranks", "rank_scrolls"],
-      "is_rank": True,
-  },
-  "RankDistance": {
-      "name": "Rank Distance",
-      "icon": "mdi:trophy",
-      "unit": "",
-      "rank_key": "Distance",
-      "client_path": ["account-totals", "ranks", "rank_distance"],
-      "is_rank": True,
-  },
+    "RankKeys": {
+        "name": "Rank Keys",
+        "icon": "mdi:trophy",
+        "unit": "",
+        "rank_key": "Keys",
+        "client_path": ["account-totals", "ranks", "rank_keys"],
+        "is_rank": True,
+    },
+    "RankClicks": {
+        "name": "Rank Clicks",
+        "icon": "mdi:trophy",
+        "unit": "",
+        "rank_key": "Clicks",
+        "client_path": ["account-totals", "ranks", "rank_clicks"],
+        "is_rank": True,
+    },
+    "RankDownload": {
+        "name": "Rank Download",
+        "icon": "mdi:trophy",
+        "unit": "",
+        "rank_key": "Download",
+        "client_path": ["account-totals", "ranks", "rank_download"],
+        "is_rank": True,
+    },
+    "RankUpload": {
+        "name": "Rank Upload",
+        "icon": "mdi:trophy",
+        "unit": "",
+        "rank_key": "Upload",
+        "client_path": ["account-totals", "ranks", "rank_upload"],
+        "is_rank": True,
+    },
+    "RankUptime": {
+        "name": "Rank Uptime",
+        "icon": "mdi:trophy",
+        "unit": "",
+        "rank_key": "Uptime",
+        "client_path": ["account-totals", "ranks", "rank_uptime"],
+        "is_rank": True,
+    },
+    "RankScrolls": {
+        "name": "Rank Scrolls",
+        "icon": "mdi:trophy",
+        "unit": "",
+        "rank_key": "Scrolls",
+        "client_path": ["account-totals", "ranks", "rank_scrolls"],
+        "is_rank": True,
+    },
+    "RankDistance": {
+        "name": "Rank Distance",
+        "icon": "mdi:trophy",
+        "unit": "",
+        "rank_key": "Distance",
+        "client_path": ["account-totals", "ranks", "rank_distance"],
+        "is_rank": True,
+    },
     # Client-only sensors
     "UnpulsedKeys": {
         "name": "Unpulsed Keys",

@@ -1,0 +1,66 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "WhatPulse – API type",
+        "description": "Choose which WhatPulse API you want to use.",
+        "data": {
+          "api_type": "API type"
+        }
+      },
+      "public_config": {
+        "title": "WhatPulse – Public API",
+        "description": "Enter your WhatPulse public API credentials. You can find your API token at {public_api_docs}.",
+        "data": {
+          "userid": "User ID (optional if username is provided)",
+          "username": "Username (optional if User ID is provided)",
+          "api_token": "API token"
+        }
+      },
+      "client_config": {
+        "title": "WhatPulse – Local client API",
+        "description": "Enter the URL for the WhatPulse local client API. Make sure the WhatPulse client is running and the API is enabled.",
+        "data": {
+          "client_api_url": "Client API URL"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to the WhatPulse public API.",
+      "client_cannot_connect": "Failed to connect to the WhatPulse local client API. Make sure the client is running.",
+      "invalid_auth": "Invalid API token.",
+      "user_not_found": "WhatPulse user not found. Please check the username or User ID.",
+      "invalid_response": "Unexpected response from the WhatPulse API.",
+      "missing_identifier": "Please provide either a username or a User ID.",
+      "unknown": "An unexpected error occurred."
+    },
+    "abort": {
+      "already_configured": "WhatPulse is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "WhatPulse options",
+        "data": {
+          "userid": "User ID",
+          "username": "Username",
+          "api_token": "API token",
+          "client_api_url": "Client API URL",
+          "sensors": "Enabled sensors"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to the WhatPulse public API.",
+      "client_cannot_connect": "Failed to connect to the WhatPulse local client API. Make sure the client is running.",
+      "invalid_auth": "Invalid API token.",
+      "user_not_found": "WhatPulse user not found. Please check the username or User ID.",
+      "invalid_response": "Unexpected response from the WhatPulse API.",
+      "invalid_sensors": "One or more selected sensors are not supported for the configured API type.",
+      "missing_identifier": "Please provide either a username or a User ID.",
+      "unknown": "An unexpected error occurred."
+    }
+  }
+}
+

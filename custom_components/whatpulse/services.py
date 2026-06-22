@@ -56,6 +56,10 @@ def setup_services(hass: HomeAssistant, config_entry):
         except Exception as ex:
             _LOGGER.error(f"Error activating profile {profile_id}: {ex}")
 
+    # Re-register service to refresh captured config after options changes/reload.
+    if hass.services.has_service(DOMAIN, "activate_profile"):
+        hass.services.remove(DOMAIN, "activate_profile")
+
     # Register the service
     hass.services.register(
         DOMAIN,

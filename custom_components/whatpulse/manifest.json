@@ -4,6 +4,7 @@
   "documentation": "https://github.com/SLG/whatpulse_sensor",
   "requirements": [],
   "dependencies": [],
+  "config_flow": true,
   "codeowners": [
     "@SLG",
     "@smitmartijn",
